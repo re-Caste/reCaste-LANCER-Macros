@@ -66,31 +66,30 @@ for await(i of talents){
         }
     }
 };
-
-await Dialog.wait({
-	title:"Invade // Target: "+target.document.name,
-	buttons: invadeList.map((invade) => {
-		if (typeof game.macros.getName(invade) !== "undefined") {
-			var img = game.macros.getName(invade).img
-		} else {
-			var img = "systems/lancer/assets/icons/white/tech_full.svg"
-		};
-		return {
-			label:`
-      <div style="display: flex; align-items: center; margin-bottom: 1px; width: 300px;">
-        <div style="width: 40px; height: 40px; overflow: hidden; margin-right: 10px;">
-          <img src="${img}" style="width: 100%; height: auto;">
-        </div>
-        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">// ${invade} //</span>
-      </div>
-    `,
-			callback: async() => {
-				techAtk = new(game.lancer.flows.get("TechAttackFlow"))(token.actor, {invade:true});
-				await techAtk.begin();
-				const rolled = game.messages.contents.reverse()[0].rolls[0]._total;
-				if (rolled >= target.actor.system.edef) {
-					const wait = async (ms) => new Promise((resolve)=> setTimeout(resolve, ms));
-					await wait(2400);
+techAtk = new(game.lancer.flows.get("TechAttackFlow"))(token.actor, {invade:true});
+await techAtk.begin();
+const rolled = game.messages.contents.reverse()[0].rolls[0]._total;
+const wait = async (ms) => new Promise((resolve)=> setTimeout(resolve, ms));
+await wait(2400);
+if (rolled >= target.actor.system.edef) {
+	await Dialog.wait({
+		title:"Invade // Target: "+target.document.name,
+		buttons: invadeList.map((invade) => {
+			if (typeof game.macros.getName(invade) !== "undefined") {
+				var img = game.macros.getName(invade).img
+			} else {
+				var img = "systems/lancer/assets/icons/white/tech_full.svg"
+			};
+			return {
+				label:`
+					<div style="display: flex; align-items: center; margin-bottom: 1px; width: 300px;">
+						<div style="width: 40px; height: 40px; overflow: hidden; margin-right: 10px;">
+						<img src="${img}" style="width: 100%; height: auto;">
+						</div>
+						<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">// ${invade} //</span>
+					</div>
+				`,
+				callback: async() => {
 					let chat = {
 						title:invade,
 						description:dscList[invadeList.indexOf(invade)]
@@ -101,6 +100,6 @@ await Dialog.wait({
 					}
 				}
 			}
-		}
+		})
 	})
-});
+};
