@@ -66,11 +66,20 @@ for await(i of talents){
         }
     }
 };
-techAtk = new(game.lancer.flows.get("TechAttackFlow"))(token.actor, {invade:true});
-await techAtk.begin();
-const rolled = game.messages.contents.reverse()[0].rolls[0]._total;
-const wait = async (ms) => new Promise((resolve)=> setTimeout(resolve, ms));
-await wait(2400);
+
+if (token.document.disposition !== target.document.disposition) { 
+	techAtk = new(game.lancer.flows.get("TechAttackFlow"))(token.actor, {invade:true});
+	await techAtk.begin();
+	var rolled = game.messages.contents.reverse()[0].rolls[0]._total;
+	const wait = async (ms) => new Promise((resolve)=> setTimeout(resolve, ms));
+	await wait(2400);
+} else {
+	var rolled = 9999; //Guarantee the if statement passes if targeting ally with invade (see: willing invade)
+	const pack = game.packs.get("lancer-weapon-fx.weaponfx");
+	const techFXId = pack.index.find(i=>i.name==="DefaultTech")._id;
+	const techFX = await pack.getDocument(techFXId);
+	await techFX.execute();
+}
 if (rolled >= target.actor.system.edef) {
 	await Dialog.wait({
 		title:"Invade // Target: "+target.document.name,
