@@ -9,11 +9,7 @@
 
 const target = canvas.tokens.get(scope.targetId);
 const statuses = scope.statuses;
-if (typeof scope.active !== 'undefined') { // Assume statuses are being turned on
-	var active = scope.active;
-} else {
-	var active = true
-};
+const active = scope.active ?? true;
 
 for await(i of statuses) {
 	await target.actor.toggleStatusEffect(i, {active:active});

@@ -5,18 +5,23 @@
 // Passed arguments:
 // tokenIds - Array of target IDs
 // originatorId - Token Id
+// tracker - String that takes values "Token" or "Target"
+// source - String denoting the name of effect causing a save
+// inputSave - optional integer for specified save
 // saveConfig - statFlowParams
 // passCard - simpleTextParams
 // passDamage - damageFlowParams
 // passStatuses - Array statcond lids
 // passApply - Boolean: set to false to remove passed statcond
+// passDuration - Object containing paramters for LancerQOL Timed Effects
 // failCard - simpleTextParams
 // failDamage - damageFlowParams
 // failStatuses - Array statcond lids
 // failApply - Boolean: set to false to remove passed statcond
+// failDuration - Object containing paramters for LancerQOL Timed Effects
 
 const originator = canvas.tokens.get(scope.originatorId);
-const save = originator.actor.system.save;
+const save = scope.inputSave ?? originator.actor.system.save;
 
 // Data handling code, ensures that a specific flag is always at its required starting null value
 if (typeof originator.document.getFlag("world", "saveEffectCheck") !== "undefined" && originator.actor.testUserPermission(game.user, "OWNER")) {
@@ -24,21 +29,18 @@ if (typeof originator.document.getFlag("world", "saveEffectCheck") !== "undefine
 };
 
 const saveConfig = scope.saveConfig;
-var passCard = scope.passCard;
-if (typeof passCard === "undefined") {
-	passCard = false
-};
-var failCard = scope.failCard;
-if (typeof failCard === "undefined") {
-	failCard = false
-};
+const passCard = scope.passCard ?? false;
+const failCard = scope.failCard ?? false;
 
 const passDamage = scope.passDamage;
 const passStatuses = scope.passStatuses;
 const passApply = scope.passApply;
+const passDuration = scope.passDuration;
+
 const failDamage = scope.failDamage;
 const failStatuses = scope.failStatuses;
 const failApply = scope.failApply;
+const failDuration = scope.failDuration;
 
 let passes = [];
 let fails = [];
@@ -97,12 +99,16 @@ for await(i of scope.tokenIds) {
 await game.macros.getName("Save Effect").execute({
 	tokenId:scope.originatorId,
     targetIds:scope.tokenIds, 
+	tracker: scope.tracker,
+	source: scope.source,
 
 	passDamage:passDamage, 
 	passStatuses:passStatuses,
 	passApply:passApply,
+	passDuration:passDuration,
 
 	failDamage:failDamage,
 	failStatuses:failStatuses,
 	failApply:failApply,
+	failDuration:failDuration
 });

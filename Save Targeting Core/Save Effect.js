@@ -3,17 +3,23 @@
 // Run as "Everyone" using Advanced Macros
 
 // Passed arguments:
-// originatorId - Token Id
+// tokenId - Token Id
 // targetIds - Array of token Ids 
+// tracker - String that takes values "Token" or "Target"
+// source - String denoting the name of effect causing a save
 // passDamage - damageFlowParams
 // passStatuses - Array statcond lids
 // passApply - Boolean: set to false to remove passed statcond
+// passDuration - Object containing paramters for LancerQOL Timed Effects
 // failDamage - damageFlowParams
 // failStatuses - Array statcond lids
 // failApply - Boolean: set to false to remove passed statcond
+// failDuration - Object containing paramters for LancerQOL Timed Effects
 
 const applyStatus = game.macros.getName("Apply Statuses")
+const editFlag = game.macros.getName("Edit Flag")
 const token = canvas.tokens.get(scope.tokenId);
+const tracker = scope.tracker ?? "Target";
 
 // Create list of users with "OWNER" permissions to this token
 permList = []
@@ -43,32 +49,18 @@ if (typeof token.document.getFlag("world", "saveEffectCheck") !== "undefined") {
 await token.document.setFlag("world", "saveEffectCheck", true) // Only allow the Dialog to be open once
 
 // Define pass configs
-var passDamage = scope.passDamage;
-if (typeof passDamage === "undefined") {
-	passDamage = false;
-};
-var passStatuses = scope.passStatuses;
-if (typeof passStatuses === "undefined") {
-    passStatuses = [];
-};
-var passApply = scope.passApply;
-if (typeof passApply === "undefined") {
-    passApply = true;
-};
+var passDamage = scope.passDamage ?? false;
+var passStatuses = scope.passStatuses ?? [];
+var passApply = scope.passApply ?? true;
+var passDuration = scope.passDuration ?? false
 
 // Define fail configs
-var failDamage = scope.failDamage;
-if (typeof failDamage === "undefined") {
-	failDamage = false;
-};
-var failStatuses = scope.failStatuses;
-if (typeof failStatuses === "undefined") {
-    failStatuses = [];
-};
-var failApply = scope.failApply;
-if (typeof failApply === "undefined") {
-    failApply = true;
-};
+var failDamage = scope.failDamage ?? false;
+var failStatuses = scope.failStatuses ?? [];
+var failApply = scope.failApply ?? true;
+var failDuration = scope.failDuration ?? false
+
+const note = typeof(scope.source!=="undefined") ? "Source: "+scope.source : "";
 
 // Wait for all saves to be complete
 await Dialog.wait({
@@ -91,11 +83,11 @@ await Dialog.wait({
                     let j = canvas.tokens.get(i)
                     if (typeof j.document.getFlag("world", "pass") !== "undefined" && j.document.getFlag("world", "pass") === true) {
                         passIds.push(i);
-                        j.document.unsetFlag("world", "pass");
+                        await editFlag.execute({targetId: j.document._id, flagName:"pass", set:false});
                     };
                     if (typeof j.document.getFlag("world", "fail") !== "undefined" && j.document.getFlag("world", "fail") === true) {
                         failIds.push(i);
-                        j.document.unsetFlag("world", "fail");
+                        await editFlag.execute({targetId: j.document._id, flagName:"fail", set:false});
                     };
                 };
                 await canvas.tokens.selectObjects(token) // Ensure original token is selected
@@ -119,7 +111,22 @@ await Dialog.wait({
                     };
                     if (failStatuses.length > 0) {
                         for await(i of failIds) {
-                            applyStatus.execute({targetId:i, statuses:failStatuses, active:failApply})
+                            if (typeof game.modules.get("csm-lancer-qol").exposed.pushFlaggedEffect !== "undefined" && failDuration !== false) {
+                                let tempDuration = structuredClone(failDuration);
+                                if (tracker === "Token") {
+                                    var originId = scope.tokenId
+                                } else {
+                                    var originId = i
+                                };
+                                if (game.combat.current.tokenId === originId) {
+                                    tempDuration.turns++
+                                }
+                                for await (effect of failStatuses) {
+                                    await game.modules.get("csm-lancer-qol").exposed.pushFlaggedEffect(i, game.items.find(i=>i.system.lid===effect).name, tempDuration, note, originId)
+                                };
+                            } else {
+                                await applyStatus.execute({targetId:i, statuses:failStatuses, active:failApply})
+                            }
                         };
                     };
                 };
@@ -132,7 +139,22 @@ await Dialog.wait({
                     };
                     if (passStatuses.length > 0) {
                         for await(i of passIds) {
-                            applyStatus.execute({targetId:i, statuses:passStatuses, active:passApply})
+                            if (typeof game.modules.get("csm-lancer-qol").exposed.pushFlaggedEffect !== "undefined" && passDuration !== false) {
+                                let tempDuration = structuredClone(passDuration);
+                                if (tracker === "Token") {
+                                    var originId = scope.tokenId
+                                } else {
+                                    var originId = i
+                                };
+                                if (game.combat.current.tokenId === originId) {
+                                    tempDuration.turns++
+                                }
+                                for await (effect of passStatuses) {
+                                    await game.modules.get("csm-lancer-qol").exposed.pushFlaggedEffect(i, game.items.find(i=>i.system.lid===effect).name, tempDuration, note, trackerId)
+                                };
+                            } else {
+                                await applyStatus.execute({targetId:i, statuses:passStatuses, active:passApply})
+                            };
                         };
                     };
                 };
